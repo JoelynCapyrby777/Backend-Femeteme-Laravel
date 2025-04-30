@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssociationController;
-use App\Http\Middleware\CheckRole;
 
 // Rutas públicas
 Route::post('login', [AuthController::class, 'login']);
@@ -20,7 +19,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('associations', [AssociationController::class, 'obtenerAsociaciones']);
 
     // Rutas solo para Admin y Árbitro (roles 1 y 2)
-    Route::middleware([CheckRole::class . ':1,2'])->group(function () {
+    Route::middleware(['check.role:1,2'])->group(function () {
         Route::post('associations', [AssociationController::class, 'crearAsociacion']);
         Route::get('associations/{id}', [AssociationController::class, 'obtenerAsociacion']);
         Route::patch('associations/{id}', [AssociationController::class, 'modificarAsociacion']);
@@ -28,7 +27,14 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
     // Rutas exclusivas para Admin (rol 1)
-    Route::middleware([CheckRole::class . ':1'])->group(function () {
+    Route::middleware(['check.role:1'])->group(function () {
         Route::post('register', [AuthController::class, 'register']);
     });
+
+    // Ruta de prueba (solo en entorno testing)
+    if (app()->environment('testing')) {
+        Route::middleware(['check.role:1,2'])->get('/api/prueba-rol', function () {
+            return response()->json(['message' => 'Acceso permitido'], 200);
+        });
+    }
 });
