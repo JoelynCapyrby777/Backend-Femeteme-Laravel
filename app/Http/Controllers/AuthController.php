@@ -22,7 +22,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:10|max:100',
             'email' => 'required|string|email|min:10|max:50|unique:users',
-            'password' => 'required|string|min:10|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'role_id' => 'required|exists:roles,id',
         ]);
 
@@ -33,6 +33,10 @@ class AuthController extends Controller
         $user = $this->authService->register($request->all());
         return response()->json(['message' => 'Usuario creado exitosamente', 'user' => $user], 201);
     }
+
+    /**
+     * @unauthenticated
+    */
 
     public function login(Request $request)
     {
