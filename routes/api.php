@@ -7,33 +7,33 @@ use App\Http\Controllers\AssociationController;
 // Rutas públicas
 Route::post('login', [AuthController::class, 'login']);
 
-// Rutas protegidas por autenticación básica
+// Rutas protegidas
 Route::middleware(['auth:api'])->group(function () {
 
-    // Rutas básicas para usuarios autenticados
+    // Rutas generales para cualquier usuario autenticado
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
     Route::post('refresh', [AuthController::class, 'refresh']);
 
-    // Rutas para todos los usuarios autenticados
+    // 🔓 Todos los usuarios autenticados pueden ver asociaciones (incl. Admin, Árbitro y Jugador)
     Route::get('associations', [AssociationController::class, 'obtenerAsociaciones']);
 
-    // Rutas solo para Admin y Árbitro (roles 1 y 2)
-    Route::middleware(['check.role:1,2'])->group(function () {
+    // 🔐 Admin + Árbitro pueden crear y ver una asociación específica
+    Route::middleware(['is.admin_or_arbitro'])->group(function () {
         Route::post('associations', [AssociationController::class, 'crearAsociacion']);
         Route::get('associations/{id}', [AssociationController::class, 'obtenerAsociacion']);
-        Route::patch('associations/{id}', [AssociationController::class, 'modificarAsociacion']);
-        Route::delete('associations/{id}', [AssociationController::class, 'eliminarAsociacion']);
     });
 
-    // Rutas exclusivas para Admin (rol 1)
-    Route::middleware(['check.role:1'])->group(function () {
+    // 🔐 Solo Admin puede modificar, eliminar asociaciones y registrar usuarios
+    Route::middleware(['is.admin'])->group(function () {
+        Route::patch('associations/{id}', [AssociationController::class, 'modificarAsociacion']);
+        Route::delete('associations/{id}', [AssociationController::class, 'eliminarAsociacion']);
         Route::post('register', [AuthController::class, 'register']);
     });
 
-    // Ruta de prueba (solo en entorno testing)
+    // Ruta de prueba (solo para testing)
     if (app()->environment('testing')) {
-        Route::middleware(['check.role:1,2'])->get('/api/prueba-rol', function () {
+        Route::middleware(['is.admin_or_arbitro'])->get('/api/prueba-rol', function () {
             return response()->json(['message' => 'Acceso permitido'], 200);
         });
     }
