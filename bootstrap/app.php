@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsArbitro;
 use App\Http\Middleware\IsJugador;
@@ -19,7 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
 
-            'check.role' => CheckRole::class,
             'is.admin' => IsAdmin::class,
             'is.arbitro' => IsArbitro::class,
             'is.jugador' => IsJugador::class,
