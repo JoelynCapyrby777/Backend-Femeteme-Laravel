@@ -9,21 +9,32 @@ use Illuminate\Support\Facades\Validator;
 
 class PlayerService
 {
-    public function list()
+    public function obtenerTodos()
     {
-        return Player::with(['user:id,name,email', 'association:id,name'])->get();
+        $jugadores = Player::with(['user:id,name,email', 'association:id,name'])->get();
+
+        if ($jugadores->isEmpty()) {
+            return ['error' => 'No hay jugadores registrados', 'status' => 404];
+        }
+
+        $jugadoresModificados = $jugadores->map(function ($jugador) {
+            $data = $jugador->toArray();
+            $data['ranking_position'] = $jugador->ranking_position ?? 'No asignado';
+            return $data;
+        });
+
+        return ['data' => $jugadoresModificados, 'status' => 200];
     }
 
-    public function create(array $data)
+    public function crear(array $data)
     {
         $validator = Validator::make($data, [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:6|confirmed',
             'curp' => 'required|string|max:18|unique:players',
             'age' => 'required|integer|min:5|max:100',
             'category' => 'required|in:femenil,varonil',
-            'ranking_position' => 'nullable|integer|min:1',
             'association_id' => 'required|exists:associations,id',
         ]);
 
@@ -31,49 +42,76 @@ class PlayerService
             return ['error' => $validator->errors(), 'status' => 422];
         }
 
-        // Crear el usuario con rol jugador (role_id = 3)
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'role_id' => 3, // Rol jugador
+            'role_id' => 3, // Jugador
         ]);
 
-        // Crear el jugador asociado al usuario
         $player = Player::create([
             'user_id' => $user->id,
             'curp' => $data['curp'],
             'age' => $data['age'],
             'category' => $data['category'],
-            'ranking_position' => $data['ranking_position'] ?? null,
+            'ranking_position' => null, // No se asigna al crear
             'association_id' => $data['association_id'],
         ]);
 
-        return ['data' => $player->load('user', 'association'), 'status' => 201];
+        $formateado = $player->load('user', 'association')->toArray();
+        $formateado['ranking_position'] = 'No asignado';
+
+        return ['data' => $formateado, 'status' => 201];
     }
 
-    public function find($id)
+    public function obtenerPorId($id)
     {
-        $player = Player::with(['user:id,name,email', 'association:id,name'])->find($id);
+        $jugador = Player::with(['user:id,name,email', 'association:id,name'])->find($id);
 
-        if (!$player) {
+        if (!$jugador) {
             return ['error' => 'Jugador no encontrado', 'status' => 404];
         }
 
-        return ['data' => $player, 'status' => 200];
+        $data = $jugador->toArray();
+        $data['ranking_position'] = $jugador->ranking_position ?? 'No asignado';
+
+        return ['data' => $data, 'status' => 200];
     }
 
-    public function update($id, array $data)
+    public function modificar(array $data, $id)
     {
-        $player = Player::findOrFail($id);
-        $player->update($data);
-        return $player;
+        $jugador = Player::find($id);
+
+        if (!$jugador) {
+            return ['error' => 'Jugador no encontrado', 'status' => 404];
+        }
+
+        $validator = Validator::make($data, [
+            'curp' => "sometimes|string|max:18|unique:players,curp,{$id}",
+            'age' => 'sometimes|integer|min:5|max:100',
+            'category' => 'sometimes|in:femenil,varonil',
+            'association_id' => 'sometimes|exists:associations,id',
+        ]);
+
+        if ($validator->fails()) {
+            return ['error' => $validator->errors(), 'status' => 422];
+        }
+
+        $jugador->update($data);
+
+        return ['message' => 'Jugador actualizado correctamente', 'status' => 200];
     }
 
-    public function delete($id)
+    public function eliminar($id)
     {
-        $player = Player::findOrFail($id);
-        $player->delete();
-        return response()->json(['message' => 'Jugador eliminado'], 204);
+        $jugador = Player::find($id);
+
+        if (!$jugador) {
+            return ['error' => 'Jugador no encontrado', 'status' => 404];
+        }
+
+        $jugador->delete();
+
+        return ['message' => 'Jugador eliminado correctamente', 'status' => 204];
     }
 }
