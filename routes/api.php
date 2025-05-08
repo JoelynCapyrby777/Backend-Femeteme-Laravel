@@ -17,12 +17,12 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('refresh', [AuthController::class, 'refresh']);
 
     // 🔓 Todos los usuarios autenticados pueden ver asociaciones
-    Route::get('asociaciones', [AssociationController::class, 'obtenerAsociaciones']);
+    Route::get('asociaciones', [AssociationController::class, 'index']);
 
     // 🔐 Admin + Árbitro pueden crear y ver una asociación específica
     Route::middleware(['is.admin_or_arbitro'])->group(function () {
-        Route::post('asociaciones', [AssociationController::class, 'crearAsociacion']);
-        Route::get('asociaciones/{id}', [AssociationController::class, 'obtenerAsociacion']);
+        Route::post('asociaciones', [AssociationController::class, 'store']);
+        Route::get('asociaciones/{id}', [AssociationController::class, 'show']);
     });
 
     // 🔐 Solo Admin puede modificar, eliminar asociaciones y registrar usuarios y jugadores
@@ -31,8 +31,8 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('registro', [AuthController::class, 'register']);
 
         // Asociaciones
-        Route::patch('asociaciones/{id}', [AssociationController::class, 'modificarAsociacion']);
-        Route::delete('asociaciones/{id}', [AssociationController::class, 'eliminarAsociacion']);
+        Route::patch('asociaciones/{id}', [AssociationController::class, 'update']);
+        Route::delete('asociaciones/{id}', [AssociationController::class, 'destroy']);
 
         // Jugadores
         Route::get('jugadores', [PlayerController::class, 'obtenerJugadores']);

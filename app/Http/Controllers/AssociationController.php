@@ -2,45 +2,72 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Association;
+use App\Http\Resources\AssociationResource;
 use Illuminate\Http\Request;
-use App\Services\AssociationService;
+use App\Exceptions\AssociationNotFoundException;
 
 class AssociationController extends Controller
 {
-    protected $service;
-
-    public function __construct(AssociationService $service)
+    public function index()
     {
-        $this->service = $service;
+        // Devuelve todas las asociaciones
+        return AssociationResource::collection(Association::all());
     }
 
-    public function obtenerAsociaciones()
+    public function show($id)
     {
-        $result = $this->service->obtenerTodas();
-        return response()->json($result['data'] ?? ['message' => $result['error']], $result['status']);
+        $association = Association::find($id);
+
+        if (! $association) {
+            throw new AssociationNotFoundException;
+        }
+
+        return new AssociationResource($association);
     }
 
-    public function crearAsociacion(Request $request)
+    public function store(Request $request)
     {
-        $result = $this->service->crear($request->all());
-        return response()->json($result['data'] ?? ['message' => $result['message'] ?? $result['error']], $result['status']);
+        $data = $request->validate([
+            'name'         => 'required|string|max:255',
+            'abbreviation' => 'required|string|max:10',
+        ]);
+
+        $association = Association::create($data);
+
+        return (new AssociationResource($association))
+                    ->response()
+                    ->setStatusCode(201);
     }
 
-    public function obtenerAsociacion($id)
+    public function update(Request $request, $id)
     {
-        $result = $this->service->obtenerPorId($id);
-        return response()->json($result['data'] ?? ['message' => $result['error']], $result['status']);
+        $association = Association::find($id);
+
+        if (! $association) {
+            throw new AssociationNotFoundException;
+        }
+
+        $data = $request->validate([
+            'name'         => 'sometimes|required|string|max:255',
+            'abbreviation' => 'sometimes|required|string|max:10',
+        ]);
+
+        $association->update($data);
+
+        return new AssociationResource($association);
     }
 
-    public function modificarAsociacion(Request $request, $id)
+    public function destroy($id)
     {
-        $result = $this->service->modificar($request->all(), $id);
-        return response()->json(['message' => $result['message'] ?? $result['error']], $result['status']);
-    }
+        $association = Association::find($id);
 
-    public function eliminarAsociacion($id)
-    {
-        $result = $this->service->eliminar($id);
-        return response()->json(['message' => $result['message'] ?? $result['error']], $result['status']);
+        if (! $association) {
+            throw new AssociationNotFoundException;
+        }
+
+        $association->delete();
+
+        return response()->json(null, 204);
     }
 }
