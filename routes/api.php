@@ -31,7 +31,8 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('registro', [AuthController::class, 'register']);
 
         // Asociaciones
-        Route::patch('asociaciones/{id}', [AssociationController::class, 'update']);
+        Route::match(['put', 'patch'], 'asociaciones/{id}', [AssociationController::class, 'update']);
+
         Route::delete('asociaciones/{id}', [AssociationController::class, 'destroy']);
 
         // Jugadores

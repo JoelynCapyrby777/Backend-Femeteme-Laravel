@@ -12,8 +12,9 @@ class AssociationResource extends JsonResource
             'id'           => $this->id,
             'name'         => $this->name,
             'abbreviation' => $this->abbreviation,
-            'created_at'   => $this->created_at->toIso8601String(),
-            'updated_at'   => $this->updated_at->toIso8601String(),
+            'created_at' => optional($this->created_at)->toIso8601String(),
+            'updated_at' => optional($this->updated_at)->toIso8601String(),
+
         ];
     }
 }

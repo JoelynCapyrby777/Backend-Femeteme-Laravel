@@ -43,20 +43,24 @@ class AssociationController extends Controller
     public function update(Request $request, $id)
     {
         $association = Association::find($id);
-
+    
         if (! $association) {
             throw new AssociationNotFoundException;
         }
-
+    
         $data = $request->validate([
             'name'         => 'sometimes|required|string|max:255',
             'abbreviation' => 'sometimes|required|string|max:10',
         ]);
-
+    
         $association->update($data);
-
-        return new AssociationResource($association);
+    
+        return response()->json([
+            'message' => 'La asociación se ha actualizado correctamente',
+            'data'    => new AssociationResource($association),
+        ], 200);
     }
+    
 
     public function destroy($id)
     {
