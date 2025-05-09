@@ -1,6 +1,13 @@
 <?php
+
 namespace App\Exceptions;
 
-use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class AssociationNotFoundException extends Exception {}
+class AssociationNotFoundException extends HttpException
+{
+    public function __construct()
+    {
+        parent::__construct(404, 'Asociación no encontrada.');
+    }
+}

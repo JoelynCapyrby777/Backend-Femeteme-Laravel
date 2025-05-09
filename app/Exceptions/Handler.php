@@ -9,6 +9,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpFoundation\Response;
+use App\Exceptions\AssociationNotFoundException;
+
 
 class Handler extends ExceptionHandler
 {
@@ -23,7 +25,7 @@ class Handler extends ExceptionHandler
 
     public function register()
     {
-        //
+        
     }
 
     public function render($request, Throwable $e)
