@@ -4,110 +4,114 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Models\Association;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use PHPUnit\Framework\Attributes\Test;
 
 class AssociationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
-    protected function authenticate()
-{
-    $admin = User::factory()->create(['role_id' => 1]);
-    return JWTAuth::fromUser($admin);
-}
-
-    /** @test */
-    public function it_can_list_all_asociaciones()
+    protected function setUp(): void
     {
-        Association::factory()->count(3)->create();
-        $token = $this->authenticate();
-$this->withHeader('Authorization', "Bearer $token")
-     ->getJson('/api/associations')
-     ->assertOk();
-
-
-        $this->getJson('/api/asociaciones')
-             ->assertStatus(200)
-             ->assertJsonCount(3, 'data');
+        parent::setUp();
+        $this->artisan('db:seed');
     }
 
-    /** @test */
-    public function it_can_show_a_single_association()
+    protected function autenticar(): string
     {
-        $assoc = Association::factory()->create();
-        $token = $this->authenticate();
-$this->withHeader('Authorization', "Bearer $token")
-     ->getJson('/api/associations')
-     ->assertOk();
-
-
-        $this->getJson("/api/asociaciones/{$assoc->id}")
-             ->assertStatus(200)
-             ->assertJsonPath('data.id', $assoc->id);
+        $admin = User::factory()->create(['role_id' => 1]);
+        return JWTAuth::fromUser($admin);
     }
 
-    /** @test */
-    public function it_returns_404_if_association_not_found()
+    #[Test]
+    public function puede_listar_todas_las_asociaciones()
     {
-        $token = $this->authenticate();
-$this->withHeader('Authorization', "Bearer $token")
-     ->getJson('/api/associations')
-     ->assertOk();
+        $token = $this->autenticar();
 
-        $this->getJson('/api/asociaciones/999')
-             ->assertStatus(404)
-             ->assertJson(['message' => 'Asociación no encontrada.']);
+        $this->withHeader('Authorization', "Bearer $token")
+            ->getJson('/api/asociaciones')
+            ->assertOk()
+            ->assertJson(fn ($json) =>
+                $json->has('data', 35)
+            );
     }
 
-    /** @test */
-    public function it_can_create_an_association()
+    #[Test]
+    public function puede_mostrar_una_asociacion()
     {
-        $payload = ['name' => 'Test', 'abbreviation' => 'TST'];
-        $token = $this->authenticate();
-$this->withHeader('Authorization', "Bearer $token")
-     ->getJson('/api/associations')
-     ->assertOk();
+        $token = $this->autenticar();
+        $asociacion = Association::factory()->create();
 
-
-        $this->postJson('/api/asociaciones', $payload)
-             ->assertStatus(201)
-             ->assertJsonPath('data.name', 'Test')
-             ->assertJsonPath('data.abbreviation', 'TST');
-
-        $this->assertDatabaseHas('asociaciones', $payload);
+        $this->withHeader('Authorization', "Bearer $token")
+            ->getJson("/api/asociaciones/{$asociacion->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.id', $asociacion->id);
     }
 
-    /** @test */
-    public function it_validates_when_creating_an_association()
+    #[Test]
+    public function retorna_404_si_no_encuentra_asociacion()
     {
-        $this->postJson('/api/asociaciones', [])
-             ->assertStatus(422)
-             ->assertJsonValidationErrors(['name', 'abbreviation']);
+        $token = $this->autenticar();
+
+        $this->withHeader('Authorization', "Bearer $token")
+            ->getJson('/api/asociaciones/999')
+            ->assertStatus(404)
+            ->assertJsonPath('message', 'Asociación no encontrada.');
     }
 
-    /** @test */
-    public function it_can_update_an_association()
+    #[Test]
+    public function puede_crear_una_asociacion()
     {
-        $assoc = Association::factory()->create();
-        $payload = ['name' => 'Updated'];
+        $token = $this->autenticar();
+        $payload = ['name' => 'Test Association', 'abbreviation' => 'TST'];
 
-        $this->putJson("/api/asociaciones/{$assoc->id}", $payload)
-             ->assertStatus(200)
-             ->assertJsonPath('data.name', 'Updated');
+        $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/asociaciones', $payload)
+            ->assertStatus(201)
+            ->assertJsonPath('data.name', 'Test Association')
+            ->assertJsonPath('data.abbreviation', 'TST');
 
-        $this->assertDatabaseHas('asociaciones', ['id' => $assoc->id, 'name' => 'Updated']);
+        $this->assertDatabaseHas('associations', $payload);
     }
 
-    /** @test */
-    public function it_can_delete_an_association()
+    #[Test]
+    public function valida_al_crear_una_asociacion()
     {
-        $assoc = Association::factory()->create();
+        $token = $this->autenticar();
 
-        $this->deleteJson("/api/asociaciones/{$assoc->id}")
-             ->assertStatus(204);
+        $this->withHeader('Authorization', "Bearer $token")
+            ->postJson('/api/asociaciones', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['name', 'abbreviation']);
+    }
 
-        $this->assertDatabaseMissing('asociaciones', ['id' => $assoc->id]);
+    #[Test]
+    public function puede_actualizar_una_asociacion()
+    {
+        $token = $this->autenticar();
+        $asociacion = Association::factory()->create();
+        $payload = ['name' => 'Updated Name', 'abbreviation' => $asociacion->abbreviation];
+
+        $this->withHeader('Authorization', "Bearer $token")
+            ->putJson("/api/asociaciones/{$asociacion->id}", $payload)
+            ->assertStatus(200)
+            ->assertJsonPath('message', 'La asociación se ha actualizado correctamente');
+
+        $this->assertDatabaseHas('associations', ['id' => $asociacion->id, 'name' => 'Updated Name']);
+    }
+
+    #[Test]
+    public function puede_eliminar_una_asociacion()
+    {
+        $token = $this->autenticar();
+        $asociacion = Association::factory()->create();
+
+        $this->withHeader('Authorization', "Bearer $token")
+            ->deleteJson("/api/asociaciones/{$asociacion->id}")
+            ->assertStatus(204);
+
+        $this->assertDatabaseMissing('associations', ['id' => $asociacion->id]);
     }
 }
