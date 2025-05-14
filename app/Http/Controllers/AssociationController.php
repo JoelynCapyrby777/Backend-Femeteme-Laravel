@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Association;
-use App\Http\Resources\AssociationResource;
+use App\Http\Resources\Association\AssociationResource;
 use Illuminate\Http\Request;
-use App\Exceptions\AssociationNotFoundException;
+use App\Exceptions\Association\AssociationNotFoundException;
 
 class AssociationController extends Controller
 {
