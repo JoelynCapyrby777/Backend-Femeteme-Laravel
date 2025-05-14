@@ -5,11 +5,12 @@ namespace App\Exceptions;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpFoundation\Response;
-use App\Exceptions\AssociationNotFoundException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Exceptions\Association\AssociationNotFoundException;
+use App\Exceptions\Player\PlayerNotFoundException;
 
 
 class Handler extends ExceptionHandler
