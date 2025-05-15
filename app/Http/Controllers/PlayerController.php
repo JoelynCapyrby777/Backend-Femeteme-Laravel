@@ -20,13 +20,18 @@ class PlayerController extends Controller
     public function index(): JsonResponse
     {
         $players = $this->service->obtenerTodos();
-        return response()->json(PlayerResource::collection($players));
+        return response()->json([
+        'data' => PlayerResource::collection($players)
+    ]);
     }
 
     public function show($id): JsonResponse
     {
         $player = $this->service->obtenerPorId($id);
-        return response()->json(new PlayerResource($player));
+        
+        return response()->json([
+        'data' => new PlayerResource($player)
+    ]);
     }
 
     public function store(StorePlayerRequest $request): JsonResponse
