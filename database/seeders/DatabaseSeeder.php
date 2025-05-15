@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             AssociationSeeder::class,
             AdminSeeder::class,
+            PlayerSeeder::class,
         
         ]);
     
