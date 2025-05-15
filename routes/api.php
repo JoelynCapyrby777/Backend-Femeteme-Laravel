@@ -36,11 +36,11 @@ Route::middleware(['auth:api'])->group(function () {
         Route::delete('asociaciones/{id}', [AssociationController::class, 'destroy']);
 
         // Jugadores
-        Route::get('jugadores', [PlayerController::class, 'obtenerJugadores']);
-        Route::post('jugadores', [PlayerController::class, 'crearJugador']);
-        Route::get('jugadores/{id}', [PlayerController::class, 'obtenerJugador']);
-        Route::match(['put', 'patch'], 'jugadores/{id}', [PlayerController::class, 'modificarJugador']);
-        Route::delete('jugadores/{id}', [PlayerController::class, 'eliminarJugador']);
+        Route::get('jugadores', [PlayerController::class, 'index']);
+        Route::post('jugadores', [PlayerController::class, 'store']);
+        Route::get('jugadores/{id}', [PlayerController::class, 'show']);
+        Route::match(['put', 'patch'], 'jugadores/{id}', [PlayerController::class, 'update']);
+        Route::delete('jugadores/{id}', [PlayerController::class, 'destroy']);
     });
 
     // Ruta de prueba para testing
