@@ -5,78 +5,89 @@ namespace App\Services;
 use App\Models\Association;
 use Illuminate\Support\Facades\Validator;
 
+use App\Exceptions\Association\AssociationNotFoundException;
+use App\Exceptions\Association\AssociationValidationException;
+use App\Exceptions\Association\AssociationConflictException;
+
 class AssociationService
 {
     public function obtenerTodas()
     {
-        $associations = Association::all();
-
-        if ($associations->isEmpty()) {
-            return ['error' => 'No hay asociaciones registradas', 'status' => 404];
-        }
-
-        return ['data' => $associations, 'status' => 200];
+        return Association::all();
     }
 
     public function crear(array $data)
     {
         $validator = Validator::make($data, [
-            'name' => 'required|string|max:255|unique:associations,name',
-            'abbreviation' => 'required|string|max:255|unique:associations,abbreviation',
+            'name' => 'required|string|max:255',
+            'abbreviation' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
-            return ['error' => $validator->errors(), 'status' => 400];
+            throw new AssociationValidationException($validator->errors()->toJson());
         }
 
-        Association::create($data);
+        if (Association::where('name', $data['name'])->exists()) {
+            throw new AssociationConflictException("Ya existe una asociación con ese nombre.");
+        }
 
-        return ['message' => 'Asociación creada correctamente', 'status' => 201];
+        if (Association::where('abbreviation', $data['abbreviation'])->exists()) {
+            throw new AssociationConflictException("Ya existe una asociación con esa abreviatura.");
+        }
+
+        return Association::create($data);
     }
 
     public function obtenerPorId($id)
     {
         $association = Association::find($id);
 
-        if (!$association) {
-            return ['error' => 'Asociación no encontrada', 'status' => 404];
+        if (! $association) {
+            throw new AssociationNotFoundException();
         }
 
-        return ['data' => $association, 'status' => 200];
+        return $association;
     }
 
     public function modificar(array $data, $id)
     {
         $association = Association::find($id);
 
-        if (!$association) {
-            return ['error' => 'Asociación no encontrada', 'status' => 404];
+        if (! $association) {
+            throw new AssociationNotFoundException();
         }
 
         $validator = Validator::make($data, [
-            'name' => 'required|string|max:255|unique:associations,name,' . $id,
-            'abbreviation' => 'required|string|max:255|unique:associations,abbreviation,' . $id,
+            'name' => 'required|string|max:255',
+            'abbreviation' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
-            return ['error' => $validator->errors(), 'status' => 422];
+            throw new AssociationValidationException($validator->errors()->toJson());
+        }
+
+        // Verifica si el nombre ya está en uso por otra asociación
+        if (Association::where('name', $data['name'])->where('id', '!=', $id)->exists()) {
+            throw new AssociationConflictException("El nombre ya está en uso por otra asociación.");
+        }
+
+        if (Association::where('abbreviation', $data['abbreviation'])->where('id', '!=', $id)->exists()) {
+            throw new AssociationConflictException("La abreviatura ya está en uso por otra asociación.");
         }
 
         $association->update($data);
 
-        return ['message' => 'La asociación se ha actualizado correctamente', 'status' => 200];
+        return $association;
     }
 
     public function eliminar($id)
     {
         $association = Association::find($id);
 
-        if (!$association) {
-            return ['error' => 'Asociación no encontrada', 'status' => 404];
+        if (! $association) {
+            throw new AssociationNotFoundException();
         }
 
         $association->delete();
-
-        return ['message' => 'Asociación eliminada correctamente', 'status' => 204];
     }
 }

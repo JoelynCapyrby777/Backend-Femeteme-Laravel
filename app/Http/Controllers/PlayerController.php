@@ -20,6 +20,7 @@ class PlayerController extends Controller
     public function index(): JsonResponse
     {
         $players = $this->service->obtenerTodos();
+        
         return response()->json([
         'data' => PlayerResource::collection($players)
     ]);

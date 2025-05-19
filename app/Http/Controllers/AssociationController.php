@@ -2,75 +2,62 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Association;
+use App\Services\AssociationService;
+use Illuminate\Http\JsonResponse;
 use App\Http\Resources\Association\AssociationResource;
-use Illuminate\Http\Request;
-use App\Exceptions\Association\AssociationNotFoundException;
+use App\Http\Requests\Association\StoreAssociationRequest;
+use App\Http\Requests\Association\UpdateAssociationRequest;
 
 class AssociationController extends Controller
 {
-    public function index()
+    protected AssociationService $service;
+
+    public function __construct(AssociationService $service)
     {
-        // Devuelve todas las asociaciones
-        return AssociationResource::collection(Association::all());
+        $this->service = $service;
     }
 
-    public function show($id)
+    public function index(): JsonResponse
     {
-        $association = Association::find($id);
+        $associations = $this->service->obtenerTodas();
 
-        if (! $association) {
-            throw new AssociationNotFoundException;
-        }
-
-        return new AssociationResource($association);
-    }
-
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name'         => 'required|string|max:255',
-            'abbreviation' => 'required|string|max:10',
-        ]);
-
-        $association = Association::create($data);
-
-        return (new AssociationResource($association))
-                    ->response()
-                    ->setStatusCode(201);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $association = Association::find($id);
-    
-        if (! $association) {
-            throw new AssociationNotFoundException;
-        }
-    
-        $data = $request->validate([
-            'name'         => 'sometimes|required|string|max:255',
-            'abbreviation' => 'sometimes|required|string|max:10',
-        ]);
-    
-        $association->update($data);
-    
         return response()->json([
-            'message' => 'La asociación se ha actualizado correctamente',
-            'data'    => new AssociationResource($association),
-        ], 200);
+            'data' => AssociationResource::collection($associations)
+        ]);
     }
-    
 
-    public function destroy($id)
+    public function show($id): JsonResponse
     {
-        $association = Association::find($id);
+        $association = $this->service->obtenerPorId($id);
 
-        if (! $association) {
-            throw new AssociationNotFoundException;
-        }
+        return response()->json([
+            'data' => new AssociationResource($association)
+        ]);
+    }
 
-        $association->delete();
+    public function store(StoreAssociationRequest $request): JsonResponse
+    {
+        $association = $this->service->crear($request->validated());
+
+        return response()->json([
+            'message' => 'Asociación creada correctamente',
+            'data'    => new AssociationResource($association)
+        ], 201);
+    }
+
+    public function update(UpdateAssociationRequest $request, $id): JsonResponse
+    {
+        $association = $this->service->modificar($request->validated(), $id);
+
+        return response()->json([
+            'message' => 'Asociación actualizada correctamente',
+            'data'    => new AssociationResource($association)
+        ]);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $this->service->eliminar($id);
 
         return response()->json(null, 204);
     }
