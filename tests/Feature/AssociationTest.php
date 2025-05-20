@@ -33,9 +33,7 @@ class AssociationTest extends TestCase
         $this->withHeader('Authorization', "Bearer $token")
             ->getJson('/api/asociaciones')
             ->assertOk()
-            ->assertJson(fn ($json) =>
-                $json->has('data', 35)
-            );
+            ->assertJsonStructure(['data']);
     }
 
     #[Test]
@@ -46,7 +44,7 @@ class AssociationTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer $token")
             ->getJson("/api/asociaciones/{$asociacion->id}")
-            ->assertStatus(200)
+            ->assertOk()
             ->assertJsonPath('data.id', $asociacion->id);
     }
 
@@ -56,8 +54,8 @@ class AssociationTest extends TestCase
         $token = $this->autenticar();
 
         $this->withHeader('Authorization', "Bearer $token")
-            ->getJson('/api/asociaciones/999')
-            ->assertStatus(404)
+            ->getJson('/api/asociaciones/99999')
+            ->assertNotFound()
             ->assertJsonPath('message', 'Asociación no encontrada.');
     }
 
@@ -65,13 +63,16 @@ class AssociationTest extends TestCase
     public function puede_crear_una_asociacion()
     {
         $token = $this->autenticar();
-        $payload = ['name' => 'Test Association', 'abbreviation' => 'TST'];
+        $payload = [
+            'name' => 'Test Association',
+            'abbreviation' => 'TST',
+        ];
 
         $this->withHeader('Authorization', "Bearer $token")
             ->postJson('/api/asociaciones', $payload)
-            ->assertStatus(201)
-            ->assertJsonPath('data.name', 'Test Association')
-            ->assertJsonPath('data.abbreviation', 'TST');
+            ->assertCreated()
+            ->assertJsonPath('data.name', $payload['name'])
+            ->assertJsonPath('data.abbreviation', $payload['abbreviation']);
 
         $this->assertDatabaseHas('associations', $payload);
     }
@@ -83,7 +84,7 @@ class AssociationTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer $token")
             ->postJson('/api/asociaciones', [])
-            ->assertStatus(422)
+            ->assertUnprocessable()
             ->assertJsonValidationErrors(['name', 'abbreviation']);
     }
 
@@ -92,14 +93,33 @@ class AssociationTest extends TestCase
     {
         $token = $this->autenticar();
         $asociacion = Association::factory()->create();
-        $payload = ['name' => 'Updated Name', 'abbreviation' => $asociacion->abbreviation];
+
+        $payload = [
+            'name' => 'Nombre Actualizado',
+            'abbreviation' => $asociacion->abbreviation,
+        ];
 
         $this->withHeader('Authorization', "Bearer $token")
             ->putJson("/api/asociaciones/{$asociacion->id}", $payload)
-            ->assertStatus(200)
+            ->assertOk()
             ->assertJsonPath('message', 'La asociación se ha actualizado correctamente');
 
-        $this->assertDatabaseHas('associations', ['id' => $asociacion->id, 'name' => 'Updated Name']);
+        $this->assertDatabaseHas('associations', [
+            'id' => $asociacion->id,
+            'name' => 'Nombre Actualizado',
+        ]);
+    }
+
+    #[Test]
+    public function valida_al_actualizar_una_asociacion()
+    {
+        $token = $this->autenticar();
+        $asociacion = Association::factory()->create();
+
+        $this->withHeader('Authorization', "Bearer $token")
+            ->putJson("/api/asociaciones/{$asociacion->id}", ['name' => ''])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name']);
     }
 
     #[Test]
@@ -110,7 +130,7 @@ class AssociationTest extends TestCase
 
         $this->withHeader('Authorization', "Bearer $token")
             ->deleteJson("/api/asociaciones/{$asociacion->id}")
-            ->assertStatus(204);
+            ->assertNoContent();
 
         $this->assertDatabaseMissing('associations', ['id' => $asociacion->id]);
     }

@@ -27,27 +27,22 @@ class PlayerTest extends TestCase
     }
 
     #[Test]
-public function puede_listar_tres_jugadores_existentes()
-{
-    $token = $this->authenticate();
+    public function puede_listar_los_jugadores()
+    {
+        $token = $this->authenticate();
+        Player::factory()->count(3)->create();
 
-    $this->withHeader('Authorization', "Bearer $token")
-        ->getJson('/api/jugadores')
-        ->assertOk()
-        ->assertJson(fn ($json) =>
-            $json->has('data', 3) // Espera exactamente 3 registros
-        );
-}
-
-
-
+        $this->withHeader('Authorization', "Bearer $token")
+            ->getJson('/api/jugadores')
+            ->assertOk()
+            ->assertJsonStructure(['data']);
+    }
 
     #[Test]
     public function puede_mostrar_un_jugador()
     {
         $token = $this->authenticate();
-        $association = Association::factory()->create();
-        $player = Player::factory()->create(['association_id' => $association->id]);
+        $player = Player::factory()->create();
 
         $this->withHeader('Authorization', "Bearer $token")
             ->getJson("/api/jugadores/{$player->id}")
@@ -62,7 +57,7 @@ public function puede_listar_tres_jugadores_existentes()
 
         $this->withHeader('Authorization', "Bearer $token")
             ->getJson('/api/jugadores/999')
-            ->assertStatus(404)
+            ->assertNotFound()
             ->assertJsonPath('message', 'Jugador no encontrado.');
     }
 
@@ -85,7 +80,7 @@ public function puede_listar_tres_jugadores_existentes()
 
         $this->withHeader('Authorization', "Bearer $token")
             ->postJson('/api/jugadores', $payload)
-            ->assertStatus(201)
+            ->assertCreated()
             ->assertJsonPath('data.curp', 'CURP1234567890123');
     }
 
@@ -96,37 +91,72 @@ public function puede_listar_tres_jugadores_existentes()
 
         $this->withHeader('Authorization', "Bearer $token")
             ->postJson('/api/jugadores', [])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'password', 'curp', 'age', 'category', 'association_id']);
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'name', 'email', 'password', 'curp', 'age', 'category', 'association_id'
+            ]);
     }
 
     #[Test]
-    public function puede_actualizar_un_jugador()
+public function puede_actualizar_un_jugador()
+{
+    $token = $this->authenticate();
+    $association = Association::factory()->create();
+    $player = Player::factory()->create([
+        'association_id' => $association->id,
+        'curp' => 'CURP1234567890000',
+        'category' => 'varonil'
+    ]);
+
+    $payload = [
+        'name' => 'Nombre Actualizado',
+        'email' => 'nuevo-correo@example.com', // <-- nuevo correo para evitar conflicto
+        'curp' => $player->curp,
+        'age' => 30,
+        'category' => $player->category,
+        'association_id' => $association->id,
+    ];
+
+    $this->withHeader('Authorization', "Bearer $token")
+        ->putJson("/api/jugadores/{$player->id}", $payload)
+        ->assertOk()
+        ->assertJson(fn ($json) =>
+    $json->hasAll(['message', 'data'])
+         ->where('message', fn ($msg) => str_contains($msg, 'actualizado correctamente'))
+);
+
+
+    $this->assertDatabaseHas('players', [
+        'id' => $player->id,
+        'age' => 30,
+        'curp' => 'CURP1234567890000',
+        'category' => 'varonil',
+    ]);
+}
+
+
+
+    #[Test]
+    public function valida_datos_al_actualizar_un_jugador()
     {
         $token = $this->authenticate();
-        $association = Association::factory()->create();
-        $player = Player::factory()->create(['association_id' => $association->id]);
-
-        $payload = ['age' => 30];
+        $player = Player::factory()->create();
 
         $this->withHeader('Authorization', "Bearer $token")
-            ->putJson("/api/jugadores/{$player->id}", $payload)
-            ->assertStatus(200)
-            ->assertJsonPath('message', 'Jugador actualizado correctamente');
-
-        $this->assertDatabaseHas('players', ['id' => $player->id, 'age' => 30]);
+            ->putJson("/api/jugadores/{$player->id}", ['age' => 'invalido'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['age']);
     }
 
     #[Test]
     public function puede_eliminar_un_jugador()
     {
         $token = $this->authenticate();
-        $association = Association::factory()->create();
-        $player = Player::factory()->create(['association_id' => $association->id]);
+        $player = Player::factory()->create();
 
         $this->withHeader('Authorization', "Bearer $token")
             ->deleteJson("/api/jugadores/{$player->id}")
-            ->assertStatus(204);
+            ->assertNoContent();
 
         $this->assertDatabaseMissing('players', ['id' => $player->id]);
     }

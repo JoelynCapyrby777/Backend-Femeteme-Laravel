@@ -50,7 +50,7 @@ class AssociationController extends Controller
         $association = $this->service->modificar($request->validated(), $id);
 
         return response()->json([
-            'message' => 'Asociación actualizada correctamente',
+            'message' => 'La asociación se ha actualizado correctamente',
             'data'    => new AssociationResource($association)
         ]);
     }
