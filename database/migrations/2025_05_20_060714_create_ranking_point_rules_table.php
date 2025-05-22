@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('ranking_point_rules', function (Blueprint $table) {
             $table->id();
+
+            $table->unsignedInteger('min_difference');
+            $table->unsignedInteger('max_difference')->nullable(); 
+            $table->unsignedInteger('positive_points');
+            $table->unsignedInteger('negative_points');
+            $table->enum('type', ['femeteme', 'no_oficial']);
+
             $table->timestamps();
         });
     }
