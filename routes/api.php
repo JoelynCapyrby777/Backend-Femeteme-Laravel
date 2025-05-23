@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\AssociationController;
+use App\Http\Controllers\TennisMatchController;
 
 // Rutas públicas
 Route::post('login', [AuthController::class, 'login']);
@@ -25,14 +26,13 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('asociaciones/{id}', [AssociationController::class, 'show']);
     });
 
-    // 🔐 Solo Admin puede modificar, eliminar asociaciones y registrar usuarios y jugadores
+    // 🔐 Solo Admin puede modificar, eliminar asociaciones y registrar usuarios, jugadores y partidos
     Route::middleware(['is.admin'])->group(function () {
         // Usuarios
         Route::post('registro', [AuthController::class, 'register']);
 
         // Asociaciones
         Route::match(['put', 'patch'], 'asociaciones/{id}', [AssociationController::class, 'update']);
-
         Route::delete('asociaciones/{id}', [AssociationController::class, 'destroy']);
 
         // Jugadores
@@ -41,6 +41,10 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('jugadores/{id}', [PlayerController::class, 'show']);
         Route::match(['put', 'patch'], 'jugadores/{id}', [PlayerController::class, 'update']);
         Route::delete('jugadores/{id}', [PlayerController::class, 'destroy']);
+
+        // Partidos (tenis de mesa)
+        Route::post('partidos', [TennisMatchController::class, 'store']);
+        Route::match(['put', 'patch'], 'partidos/{id}', [TennisMatchController::class, 'update']);
     });
 
     // Ruta de prueba para testing
