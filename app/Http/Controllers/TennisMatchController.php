@@ -25,4 +25,15 @@ class TennisMatchController extends Controller
             'data' => new TennisMatchResource($match),
         ], 201);
     }
+
+    public function update(StoreTennisMatchRequest $request, $id): JsonResponse
+{
+    $match = $this->service->actualizar($request->validated(), $id);
+
+    return response()->json([
+        'message' => 'Partido actualizado correctamente.',
+        'data' => new TennisMatchResource($match),
+    ]);
+}
+
 }
